@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Master Asset | SIPINJAM</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+  <div id="sidebar-slot"></div>
+  <div class="main">
+    <div id="topbar-slot"></div>
+    <main class="container-fluid p-3 p-lg-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+          <h4 class="page-title">Master Asset</h4>
+          <p class="text-muted mb-0">Kelola data asset / barang inventaris.</p>
+        </div>
+        <button class="btn btn-primary" id="btnAdd"><i class="bi bi-plus-lg me-1"></i>Tambah Asset</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+          <span class="fw-semibold">Daftar Asset <span class="badge text-bg-light" id="count">0</span></span>
+          <div class="d-flex gap-2">
+            <div class="input-group input-group-sm" style="width:240px">
+              <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+              <input type="search" class="form-control" id="search" placeholder="Cari asset...">
+            </div>
+            <button class="btn btn-sm btn-light" id="btnReload" title="Muat ulang"><i class="bi bi-arrow-clockwise"></i></button>
+          </div>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead><tr>
+              <th>No</th><th>Nama Asset</th><th>Kategori</th><th class="text-center">Jumlah</th>
+              <th>Kondisi</th><th>Lokasi</th><th>Status</th><th class="text-end">Aksi</th>
+            </tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal Form -->
+  <div class="modal fade" id="formModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <form class="modal-content needs-validation" id="form" novalidate>
+        <div class="modal-header">
+          <h5 class="modal-title" id="formTitle">Tambah Asset</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id" data-type="number">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label">Nama Asset <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="nama_asset" required placeholder="cth: Laptop Asus ROG">
+              <div class="invalid-feedback">Nama asset wajib diisi.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Jumlah <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" name="jumlah" min="0" required>
+              <div class="invalid-feedback">Jumlah wajib diisi (≥ 0).</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Kategori <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="kategori" list="kategoriList" required placeholder="cth: Elektronik">
+              <datalist id="kategoriList">
+                <option value="Elektronik"><option value="Furniture"><option value="Alat Tulis"><option value="Peralatan Lab"><option value="Olahraga">
+              </datalist>
+              <div class="invalid-feedback">Kategori wajib diisi.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Lokasi <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" name="lokasi" required placeholder="cth: Lab Komputer 2">
+              <div class="invalid-feedback">Lokasi wajib diisi.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Kondisi <span class="text-danger">*</span></label>
+              <select class="form-select" name="kondisi" required>
+                <option value="">-- Pilih --</option>
+                <option>Baik</option><option>Rusak Ringan</option><option>Rusak Berat</option>
+              </select>
+              <div class="invalid-feedback">Pilih kondisi.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Status <span class="text-danger">*</span></label>
+              <select class="form-select" name="status" required>
+                <option value="">-- Pilih --</option>
+                <option>Tersedia</option><option>Dipinjam</option><option>Tidak Tersedia</option>
+              </select>
+              <div class="invalid-feedback">Pilih status.</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSave"><i class="bi bi-save me-1"></i>Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    renderLayout('asset');
+
+    const tbody = document.getElementById('tbody');
+    const form = document.getElementById('form');
+    const modal = new bootstrap.Modal('#formModal');
+    const COLS = 8;
+    let rows = [];
+
+    const LABELS = { id: 'ID', nama_asset: 'Nama Asset', kategori: 'Kategori', jumlah: 'Jumlah',
+                     kondisi: 'Kondisi', lokasi: 'Lokasi', status: 'Status', created_at: 'Dibuat' };
+
+    async function load() {
+      setTableState(tbody, COLS, 'loading');
+      try {
+        rows = await apiList('/asset/read.php');
+        render();
+      } catch (e) {
+        setTableState(tbody, COLS, 'error', e.message);
+      }
+    }
+
+    function render() {
+      const data = filterRows(rows, document.getElementById('search').value);
+      document.getElementById('count').textContent = data.length;
+      if (!data.length) return setTableState(tbody, COLS, 'empty', rows.length ? 'Tidak ada hasil pencarian' : '');
+      tbody.innerHTML = data.map((r, i) => {
+        const id = pickId(r, ['id', 'id_asset']);
+        return `<tr>
+          <td>${i + 1}</td>
+          <td class="fw-medium">${esc(r.nama_asset)}</td>
+          <td>${esc(r.kategori)}</td>
+          <td class="text-center">${esc(r.jumlah)}</td>
+          <td>${statusBadge(r.kondisi)}</td>
+          <td>${esc(r.lokasi)}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td class="text-end text-nowrap">
+            <button class="btn btn-sm btn-light btn-icon" title="Detail" onclick="detail('${esc(id)}')"><i class="bi bi-eye"></i></button>
+            <button class="btn btn-sm btn-light btn-icon text-primary" title="Edit" onclick="edit('${esc(id)}')"><i class="bi bi-pencil-square"></i></button>
+            <button class="btn btn-sm btn-light btn-icon text-danger" title="Hapus" onclick="hapus('${esc(id)}')"><i class="bi bi-trash"></i></button>
+          </td></tr>`;
+      }).join('');
+    }
+
+    function findLocal(id) { return rows.find(r => String(pickId(r, ['id', 'id_asset'])) === String(id)); }
+
+    async function fetchDetail(id) {
+      try { return toItem(await api(`/asset/detail.php?id=${encodeURIComponent(id)}`)) || findLocal(id); }
+      catch { return findLocal(id); }
+    }
+
+    // ---- READ detail
+    async function detail(id) {
+      const d = await fetchDetail(id);
+      showDetail('Detail Asset', d, LABELS, { kondisi: statusBadge, status: statusBadge });
+    }
+
+    // ---- CREATE
+    document.getElementById('btnAdd').onclick = () => {
+      fillForm(form, {});
+      form.elements['id'].value = '';
+      document.getElementById('formTitle').textContent = 'Tambah Asset';
+      modal.show();
+    };
+
+    // ---- UPDATE (isi form)
+    async function edit(id) {
+      const d = await fetchDetail(id);
+      if (!d) return toast('Data tidak ditemukan', 'danger');
+      fillForm(form, { ...d, id: pickId(d, ['id', 'id_asset']) });
+      document.getElementById('formTitle').textContent = 'Edit Asset';
+      modal.show();
+    }
+
+    // ---- SIMPAN (create / update)
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!form.checkValidity()) return form.classList.add('was-validated');
+      const body = readForm(form);
+      const isEdit = !!body.id;
+      const btn = document.getElementById('btnSave');
+      setBusy(btn, true);
+      try {
+        const res = await api(isEdit ? '/asset/update.php' : '/asset/create.php', { method: 'POST', body });
+        toast(res.message || (isEdit ? 'Asset berhasil diperbarui' : 'Asset berhasil ditambahkan'));
+        modal.hide();
+        load();
+      } catch (err) {
+        toast(err.message, 'danger');
+      } finally {
+        setBusy(btn, false);
+      }
+    });
+
+    // ---- DELETE
+    async function hapus(id) {
+      const d = findLocal(id);
+      if (!await confirmDialog(`Hapus asset "${d?.nama_asset || id}"?`)) return;
+      try {
+        const res = await api(`/asset/delete.php?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+        toast(res.message || 'Asset berhasil dihapus');
+        load();
+      } catch (err) {
+        toast(err.message, 'danger');
+      }
+    }
+
+    document.getElementById('search').addEventListener('input', render);
+    document.getElementById('btnReload').onclick = load;
+    load();
+  </script>
+</body>
+</html>
